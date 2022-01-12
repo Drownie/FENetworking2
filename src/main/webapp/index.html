@@ -1,0 +1,186 @@
+
+<html>
+	<head>
+	    <title>Chat WebSocket</title>
+	    
+	    <script src="resources/js/sockjs-0.3.4.js"></script>
+	    <script src="resources/js/stomp.js"></script>
+	    
+	    <script type="text/javascript">
+
+	        var stompClient = null;
+
+	        function setConnected(connected) {
+
+	            document.getElementById('connect').disabled = connected;
+	            document.getElementById('disconnect').disabled = !connected;
+	            document.getElementById('conversationDiv').style.visibility = connected ? 'visible' : 'hidden';
+	            document.getElementById('response').innerHTML = '';
+	        }
+
+	        function connect() {
+				var from = document.getElementById('from').value;
+
+	            var socket = new SockJS('/chat');
+	            stompClient = Stomp.over(socket);
+
+	            stompClient.connect({}, function(frame) {
+
+	            	setConnected(true);
+	                console.log('Connected: ' + frame);
+	                stompClient.subscribe('/topic/messages', function(messageOutput) {
+
+	                    showMessageOutput(JSON.parse(messageOutput.body));
+	                });
+					stompClient.send("/app/chat", {}, JSON.stringify({'from':"System", 'text':`${from} joined the chat`}));
+	            });
+	        }
+
+	        function disconnect() {
+
+	            if(stompClient != null) {
+	                stompClient.disconnect();
+	            }
+
+	            setConnected(false);
+	            console.log("Disconnected");
+	        }
+
+	        function sendMessage() {
+
+	        	var from = document.getElementById('from').value;
+	            var text = document.getElementById('text').value;
+	            stompClient.send("/app/chat", {}, JSON.stringify({'from':from, 'text':text}));
+				document.getElementById('text').value = "";
+				document.getElementById('text').focus();
+	        }
+
+	        function showMessageOutput(messageOutput) {
+
+	            var response = document.getElementById('response');
+	            var p = document.createElement('p');
+	            p.style.wordWrap = 'break-word';
+	            p.appendChild(document.createTextNode(messageOutput.from + ": " + messageOutput.text + " (" + messageOutput.time + ")"));
+	            response.appendChild(p);
+	        }
+
+	    </script>
+		<link href='https://unpkg.com/boxicons@2.1.1/css/boxicons.min.css' rel='stylesheet'>
+	    <style>
+			.container {
+				display: flex;
+				justify-content: space-between;
+				box-sizing: border-box;
+				width: 50%;
+				height: 300px;
+				margin: 20px auto;
+				/* background-color: rgb(90, 87, 87); */
+			}
+
+			.form-1 {
+				box-sizing: border-box;
+				width: 256px;
+				height: 90px;
+				padding: 10px;
+				background-color: gray;
+				border-radius: 15px;
+			}
+
+			#from {
+				box-sizing: border-box;
+				width: 100%;
+				height: 30px;
+				margin-bottom: 10px;
+			}
+
+			.button {
+				display: flex;
+				justify-content: space-between;
+			}
+
+			#connect, #disconnect {
+				box-sizing: border-box;
+				width: calc(50% - 5px);
+				height: 30px;
+				color: #fff;
+				border: none;
+				border-radius: 15px;
+				font-size: 1.2em;
+			}
+
+			#connect {
+				background-color: green;
+			}
+
+			#disconnect {
+				background-color: red;
+			}
+
+			.conversationDiv {
+				position: relative;
+				box-sizing: border-box;
+				width: calc(100% - 266px);
+				background-color: lightgray;
+				border-radius: 15px;
+				box-shadow: 0 0 2px #000;
+				overflow: hidden;
+			}
+
+			.input-form {
+				position: absolute;
+				bottom: 0;
+				display: flex;
+				justify-content: space-between;
+				box-sizing: border-box;
+				width: 100%;
+				height: 40px;
+			}
+
+			#text {
+				box-sizing: border-box;
+				width: 80%;
+				padding: 0 10px;
+				border: none;
+			}
+
+			#sendMessage {
+				box-sizing: border-box;
+				width: 20%;
+				background-color: royalblue;
+				color: #fff;
+				border: none;
+			}
+
+			#response {
+				box-sizing: border-box;
+				width: 100%;
+				height: calc(100% - 40px);
+				padding: 10px;
+				overflow: hidden auto;
+			}
+
+			p {
+				margin: 0 0 5px 0;
+			}
+		</style>
+	</head>
+	
+	<body onload="disconnect()">
+		<div class="container">
+			<div class="form-1">
+				<input type="text" id="from" placeholder="Choose a nickname"/>
+				<div class="button">
+					<button id="connect" onclick="connect();"><i class='bx bx-log-in'></i></button>
+					<button id="disconnect" disabled="disabled" onclick="disconnect();"><i class='bx bx-log-out' ></i></button>
+				</div>
+			</div>
+		    <div class="conversationDiv" id="conversationDiv">
+				<div id="response"></div>
+				<div class="input-form">
+					<input type="text" id="text" placeholder="Write a message..."/>
+		        	<button id="sendMessage" onclick="sendMessage();">Send</button>
+				</div>
+		    </div>
+		</div>
+	</body>
+</html>
